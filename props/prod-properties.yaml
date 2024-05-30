@@ -1,0 +1,28 @@
+api:
+  id: "2083942"
+
+salesforce:
+  host: "fermob360.my.salesforce.com"
+  port: ""
+  timeout.ms: "2000000"
+  path:
+    searchCustomer: "/services/apexrest/RCU/v1/searchCustomer/"
+    upsertCustomer: "/services/apexrest/RCU/v1/upsertCustomer"
+    getCustomer: "/services/apexrest/RCU/v1/getCustomer/"
+  
+salesforce_token:
+  endpoint: "https://fermob360.my.salesforce.com/services/oauth2/token"
+  host: "fermob360.my.salesforce.com"
+  port: "443"
+  path: "/services/oauth2/token"
+  timeout.ms: "300000"
+  tokenexpires : "30"
+  tokeninterval : "100"
+  grant_type : "password"
+  
+#Delay before end of customers process
+UntilComplete:
+  delay: "1000"
+  #1 sec beteen each retry
+  maxRetry: "300"
+  #300 times  

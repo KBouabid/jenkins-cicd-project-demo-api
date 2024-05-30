@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:sftp="http://www.mulesoft.org/schema/mule/sftp"
+	xmlns:batch="http://www.mulesoft.org/schema/mule/batch"
+	xmlns:compression="http://www.mulesoft.org/schema/mule/compression" xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:oauth="http://www.mulesoft.org/schema/mule/oauth" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/oauth http://www.mulesoft.org/schema/mule/oauth/current/mule-oauth.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/compression http://www.mulesoft.org/schema/mule/compression/current/mule-compression.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd
+http://www.mulesoft.org/schema/mule/sftp http://www.mulesoft.org/schema/mule/sftp/current/mule-sftp.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<flow name="post-customer" doc:id="e9657333-410e-4826-b39b-a4eb6352e11c">
+		<os:retrieve doc:name="salesforce_token" doc:id="b87cf58c-d8e1-418f-8885-303a7fd96ddf" key="salesforce_token" objectStore="sapi_token_store" target="token" />
+		<ee:transform doc:name="set-emails" doc:id="d9cedde2-69c4-4451-a75e-5e8cdcb79d35">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="varEmail"><![CDATA[%dw 2.0
+output application/json
+var regexEmail = /^[a-zA-Z0-9.!#$%&'*+-\/=?^_`{|]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z]{2,})+$/
+---
+{
+	personEmail: if(payload[0].contacts[0].email matches regexEmail)(payload[0].contacts[0].email) else ""
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<choice doc:name="Choice" doc:id="3d715f89-ee82-4fa6-98b6-34b6e9375762">
+			<when expression='#[vars.queryParams."source" == "mailchimp"]'>
+				<http:request method="GET" doc:name="GET /searchCustomer" doc:id="e61bc52f-a396-4617-953b-ea99d6ed09fb" config-ref="salesforce_requester" path="${salesforce.path.searchCustomer}" sendCorrelationId="ALWAYS" correlationId="#[correlationId]" target="getOutput">
+					<http:body><![CDATA[#[null]]]></http:body>
+					<http:headers><![CDATA[#[output application/json
+---
+{
+	'Authorization' : "Bearer " ++ vars.token
+}]]]></http:headers>
+					<http:query-params><![CDATA[#[output application/java
+---
+{
+	"email" : vars.varEmail.personEmail,
+	"lastname" : payload[0].contacts[0].lastName,
+	"phone" : payload[0].contacts[0].phone,
+//	"idSource" : payload.code,
+	"firstname" : payload[0].contacts[0].firstName
+}]]]></http:query-params>
+				</http:request>
+				<ee:transform doc:name="set-body" doc:id="1aa3b9a8-11dc-4834-8094-b442e9f89492">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	idRCU: if(sizeOf(vars.getOutput) == 1) vars.getOutput[0].idRCU else null,
+	typeSource: "Mailchimp",
+	goldenRecord:
+	{
+		lastname: payload[0].contacts[0].lastName,
+		firstname: payload[0].contacts[0].firstName,
+		personEmail: vars.varEmail.personEmail,
+		(if(payload[0].optoutEmail == "subscribe")(optOutEmail: false) else (optOutEmail: true))
+    }	
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise>
+				<http:request method="GET" doc:name="GET /searchCustomer" doc:id="ebdee5b3-f928-4ad8-92a6-df605ef70997" config-ref="salesforce_requester" path="${salesforce.path.searchCustomer}" sendCorrelationId="ALWAYS" correlationId="#[correlationId]" target="getOutput">
+					<http:body><![CDATA[#[null]]]></http:body>
+					<http:headers><![CDATA[#[output application/json
+---
+{
+	'Authorization' : "Bearer " ++ vars.token
+}]]]></http:headers>
+					<http:query-params><![CDATA[#[output application/java
+---
+{
+	"typeSource" : "X3",
+	"email" : vars.varEmail.personEmail,
+	"lastname" : payload[0].contacts[0].lastName,
+	"phone" : payload[0].contacts[0].phone,
+	"idSource" : payload[0].code,
+	"firstname" : payload[0].contacts[0].firstName
+}]]]></http:query-params>
+				</http:request>
+				<ee:transform doc:name="set-body" doc:id="539a0c29-bbd3-4c53-9650-acb2f3b72bc4">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	idRCU: if(isEmpty(vars.getOutput) == true) null else if(sizeOf(vars.getOutput) == 1) vars.getOutput[0].idRCU else null,
+	idSource: payload[0].code,
+	"clictillCode" : payload[0].clictillCode,
+	typeSource: "X3",
+	goldenRecord:
+	{
+		lastname: payload[0].contacts[0].lastName,
+		firstname: payload[0].contacts[0].firstName,
+		salutation: if(payload[0].contacts[0].civility != null and payload[0].contacts[0].civility != "") p("salutation." ++ payload[0].contacts[0].civility) else "",
+		birthDate: if(payload[0].contacts[0].birthdate != null and payload[0].contacts[0].birthdate != "") payload[0].contacts[0].birthdate as Date {format: "dd/MM/yyyy"} as Date {format : "yyyy-MM-dd"} else "",
+		personMobilePhone: payload[0].contacts[0].mobile,
+		personHomePhone: payload[0].contacts[0].phone,
+		personEmail: vars.varEmail.personEmail,
+		marche: payload[0].business,
+		segment: payload[0].segment,
+		canal: payload[0].distributionChannel default "Particuliers en direct",
+		controleEnCours: if(payload[0].unpaidControl == "3") "Bloqué" else "OK",
+		isActive: if(payload[0].status == "2") true else false,
+		isProspect: payload[0].isProspect as Boolean,
+		shippingStreet: if (isEmpty(payload[0].adresses[0]) == false) payload[0].adresses[0].line1 ++ " " ++ payload[0].adresses[0].line2 ++ " " ++ payload[0].adresses[0].line3 else null,
+        shippingPostalCode: payload[0].adresses[0].zipCode,
+        shippingCity: payload[0].adresses[0].city,
+		shippingCountry: payload[0].adresses[0].country,
+		billingStreet: if (isEmpty(payload[0].adresses[1]) == false) payload[0].adresses[1].line1 ++ " " ++ payload[0].adresses[1].line2 ++ " " ++ payload[0].adresses[1].line3 else if (isEmpty(payload[0].adresses[0]) == false and (sizeOf(payload[0]) != 1)) payload[0].adresses[0].line1 ++ " " ++ payload[0].adresses[0].line2 ++ " " ++ payload[0].adresses[0].line3 else null,
+        billingPostalCode: if(isEmpty(payload[0].adresses[1].zipCode) == true and (sizeOf(payload[0]) != 1)) payload[0].adresses[0].zipCode else payload[0].adresses[1].zipCode,
+        billingCity: if(isEmpty(payload[0].adresses[1].city) == true and (sizeOf(payload[0]) != 1)) payload[0].adresses[0].city else payload[0].adresses[1].city,
+        billingCountry: if(isEmpty(payload[0].adresses[1].country) == true and (sizeOf(payload[0]) != 1)) payload[0].adresses[0].country else payload[0].adresses[1].country,
+        optOutEmail: true
+    },
+	addresses: (payload[0].adresses map (value) -> {
+		"sourceAddressId" : value.code,
+		"street" : if (isEmpty(value) == false) value.line1 ++ " " ++ value.line2 ++ " " ++ value.line3 else null,
+        "postalCode" : value.zipCode,
+		"city" : value.city,
+		"country" : value.country
+	})	
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables />
+				</ee:transform>
+			</otherwise>
+		</choice>
+		<try doc:name="Try" doc:id="e50448db-b5bd-4abc-9188-2d82bf58c41c" >
+			<http:request method="PUT" doc:name="PUT /upsertCustomer" doc:id="4c91c330-8fcd-4384-994d-32e93eefa5e7" config-ref="salesforce_requester" path="${salesforce.path.upsertCustomer}" target="putOutput">
+			<http:body><![CDATA[#[vars.bodyUpsert]]]></http:body>
+			<http:headers><![CDATA[#[output application/json
+---
+{
+	'Authorization' : "Bearer " ++ vars.token
+	//vars.tokenOutput.access_token
+}]]]></http:headers>
+		</http:request>
+			<ee:transform doc:name="set-output" doc:id="ccfe8b3c-db0b-4c49-a1eb-c98542b439fb" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+vars.putOutput]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="7371288d-676e-459a-89a2-6b08352183a0" type="ANY">
+					<ee:transform doc:name="Set HTTP Status = 500" doc:id="a58cfa70-185c-49ad-9e0a-5572e7105cd5">
+						<ee:message />
+						<ee:variables>
+							<ee:set-variable variableName="httpStatus"><![CDATA[%dw 2.0
+output application/java
+---
+500]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+					<ee:transform doc:name="set-errors" doc:id="000e49b7-2cd4-4989-8674-c99c067601a7">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	time: now(),
+	status: vars.httpStatus,
+	failedRecordsCount : sizeOf(payload),
+	failedRecords: {
+		idSource: payload.idSource,
+		idRCU: payload.idRCU
+	},
+	reason: error.muleMessage.typedValue
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				</on-error-continue>
+			</error-handler>
+		</try>
+	</flow>
+	<flow name="get-customers-main" doc:id="91a53fdc-b4b6-44b8-b3ae-d60a858c1797" >
+		<os:retrieve doc:name="salesforce-token" doc:id="1befdb40-a90f-4c45-b7ed-607fc689e129" key="salesforce_token" objectStore="sapi_token_store" target="token" />
+		<choice doc:name="Choice" doc:id="0eb76379-d6b3-4736-a850-f9042fa2207b" >
+			<when expression='#[vars.queryParams.target == "mailchimp"]'>
+				<salesforce:query doc:name="Query" doc:id="97b4b448-0092-42f5-a085-fb7436d6af67" config-ref="Salesforce_Config" >
+					<salesforce:salesforce-query ><![CDATA[SELECT Id, Mailchimp_member_id__c, Salutation, FirstName, LastName, PersonMobilePhone, PersonHomePhone, PersonEmail, PersonBirthdate, PersonHasOptedOutOfEmail, PersonHasOptedOutOfMail__c, et4ae5__HasOptedOutOfMobile__pc, ShippingStreet, ShippingPostalCode, ShippingCity, ShippingCountry, Code_Marche__c, Segment__c, Canal__c, VIP__c, PersonMailingCountryCode, Date_Inscription_Desinscription_Email__c, Origine__c from Account 
+WHERE Last_System_Update_by__c <> 'Mailchimp' and PersonEmail <> null and Date_Inscription_Desinscription_Email__c >= :last_date]]></salesforce:salesforce-query>
+					<salesforce:parameters ><![CDATA[#[%dw 2.0
+output application/java
+---
+{
+	last_date : vars.queryParams.modified_date as Date
+}]]]></salesforce:parameters>
+				</salesforce:query>
+				<ee:transform doc:name="set-result" doc:id="a0f99104-b247-4776-b0a8-3bd00e8f801e" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map {
+	idRCU: $.Id,
+	idSource: $.Mailchimp_member_id__c,
+	addresses:[{
+		line1: $.ShippingStreet,
+		zipCode: $.ShippingPostalCode,
+		city: $.ShippingCity,
+		country: $.ShippingCountry,
+	}],
+	contacts:[{
+		salutation: $.Salutation,
+		firstName: $.FirstName,
+		lastName: $.LastName,
+		email: $.PersonEmail,
+	}],
+	segment: $.Segment__c,
+	business: $.Code_Marche__c,
+	distributionChannel: $.Canal__c,
+	vip: $.VIP__c,
+	language: $.PersonMailingCountryCode,
+	optDate: $.Date_Inscription_Desinscription_Email__c,
+	origin: $.Origine__c,
+	status: if($.PersonHasOptedOutOfEmail == "false") "subscribed" else if($.PersonHasOptedOutOfEmail == "true") "unsubscribed" else "ERREUR"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<when expression='#[vars.queryParams.target == "fermob"]'>
+				<choice doc:name="Choice" doc:id="e6d59a68-6c0d-4bb4-9fd3-7e2dd4f763fe" >
+					<when expression='#[(vars.queryParams.idRCU != null and vars.queryParams.idRCU != "") or (vars.queryParams.idX3 != null and vars.queryParams.idX3 != "")]'>
+						<http:request method="GET" doc:name="GET /searchCustomer" doc:id="97eb45a7-f944-4587-b3cd-c0f3dca4927a" config-ref="salesforce_requester" path="${salesforce.path.getCustomer}" targetValue="#[vars.searchCustomerResponse]" sendCorrelationId="ALWAYS" correlationId="#[correlationId]">
+					<http:body><![CDATA[#[null]]]></http:body>
+					<http:headers><![CDATA[#[output application/json
+---
+{
+	'Authorization' : "Bearer " ++ vars.token
+	//vars.tokenOutput.access_token
+}]]]></http:headers>
+					<http:query-params><![CDATA[#[output application/java
+---
+{
+	"typeSource" : "X3",
+	"idRCU" : vars.queryParams.idRCU default "",
+	"idSource" : vars.queryParams.idX3 default ""
+}]]]></http:query-params>
+				</http:request>
+					</when>
+					<otherwise >
+						<raise-error doc:name="Raise SAPI_SALESFORCE:BAD_REQUEST" doc:id="f18e8a38-812d-4aee-95ff-5a5891d21140" type="SAPI_SALESFORCE:BAD_REQUEST" description="Either idX3 or idRCU is needed" />
+					</otherwise>
+				</choice>
+			</when>
+			<otherwise>
+				<set-payload value='#[""]' doc:name="set-payload" doc:id="c98a35d5-5b86-4a0f-afc0-ebe853f74a25" />
+			</otherwise>
+		</choice>
+	</flow>
+</mule>

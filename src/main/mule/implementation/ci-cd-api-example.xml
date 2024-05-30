@@ -6,7 +6,7 @@
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
 	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="7174c163-8f43-4fc8-a0d1-135e846a894e" >
-		<http:listener-connection host="0.0.0.0" port="8778" />
+		<http:listener-connection host="0.0.0.0" port="${httpListener.port}" />
 	</http:listener-config>
 	<flow name="ci-cd-api-exampleFlow" doc:id="cf627f48-864d-47bb-af9f-ee171d5f6c22" >
 		<http:listener doc:name="Listener" doc:id="8dd53b50-0677-4f08-a00c-6a346dd96ec1" config-ref="HTTP_Listener_config" path="/cicdtest"/>

@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:salesforce-analytics="http://www.mulesoft.org/schema/mule/salesforce-analytics" xmlns:compression="http://www.mulesoft.org/schema/mule/compression"
+	xmlns:batch="http://www.mulesoft.org/schema/mule/batch"
+	xmlns:workday="http://www.mulesoft.org/schema/mule/workday" xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:oauth="http://www.mulesoft.org/schema/mule/oauth" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/oauth http://www.mulesoft.org/schema/mule/oauth/current/mule-oauth.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/workday http://www.mulesoft.org/schema/mule/workday/current/mule-workday.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd
+http://www.mulesoft.org/schema/mule/compression http://www.mulesoft.org/schema/mule/compression/current/mule-compression.xsd
+http://www.mulesoft.org/schema/mule/salesforce-analytics http://www.mulesoft.org/schema/mule/salesforce-analytics/current/mule-salesforce-analytics.xsd">
+	<flow name="post-crma-flow" doc:id="1f974e89-47c6-4c55-9781-1b84c06be7a0" >
+		<os:retrieve doc:name="salesforce_token" doc:id="01e6c9ba-8be2-478b-9995-887b25f2dd2d" key="salesforce_token" objectStore="sapi_token_store" target="token" />
+		<ee:transform doc:name="Init params" doc:id="49e76911-6500-4adb-9363-a1dbbd5401b7">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="failedCount"><![CDATA[%dw 2.0
+output application/json
+---
+0]]></ee:set-variable>
+				<ee:set-variable variableName="successCount"><![CDATA[%dw 2.0
+output application/json
+---
+0]]></ee:set-variable>
+				<ee:set-variable variableName="failedErrorDesc"><![CDATA[%dw 2.0
+output application/json
+---
+[]]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<ee:transform doc:name="Crma to Create" doc:id="ce962490-f9e2-474d-83f2-5bafb1ba002e">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="requestBody"><![CDATA[%dw 2.0
+output application/json
+var mappedArray = payload  map ((item) -> {
+	"Soci_t_code_interne__c": item.venteSociete,
+	"Soci_t_Libell_interne__c": item.venteSocieteLibelle,
+	"Canal_Distribution_Libell__c": item.clientCdeCanalDistributionLibelle,
+	"Centrale_Libell__c": item.clientCdeCentraleLibelle,
+	"Segment__c": item.clientCdeSegment,
+	"Segment_Libell__c": item.clientCdeSegmentLibelle,
+	"Identifiant_client__c": item.clientCdeIdentifiant,
+	"Raison_Sociale_client__c": item.clientCdeRaisonSociale,
+	"Adresse_Code_Postal__c": item.clientCdeAdresseCodePostal,
+	"Adresse_Ville__c": item.clientCdeAdresseVille,
+	"Pays_client__c": item.clientCdePays,
+	"Rep_1_Client_Code__c": item.rep1ClientCode,
+	"Rep_1_Client_Libell__c": item.rep1ClientLibelle,
+	"Rep_2_client__c": item.clientRep2,
+	"Rep_2_Libell_client__c": item.clientRep2Libelle,
+	"Pi_ce_REP1_Code__c": item.pieceRep1code,
+	"Pi_ce_REP1_Libell__c": item.pieceRep1Libelle,
+	"Pi_ce_REP2_Code__c": item.pieceRep2Code,
+	"Pi_ce_REP2_Libell__c": item.pieceRep2Libelle,
+	"Affectation_Libell__c": item.articleAffectationLibelle,
+	"Num_ro_piece__c": item.pieceNumero,
+	"Date_piece__c":  if(item.datePieceDate != "" and item.datePieceDate != null) item.datePieceDate as Date {format: "MM/dd/yyyy hh:mm:ss"} as Date {format: "yyyy-MM-dd"} else "",
+	"Commande_Li_e_Num_ro__c": item.commandeLieeNumero,
+	"Commande_Li_e_Date__c": if(item.commandeLieeDate != "" and item.commandeLieeDate != null) item.commandeLieeDate as Date {format: "MM/dd/yyyy hh:mm:ss"} as Date {format: "yyyy-MM-dd"} else "",
+	"Site_Libell_Court__c": item.venteSiteLibelleCourt,
+	"Type__c": item.commandeType,
+	"Regroupement_Sp_ciaux_Libell__c": item.clientRegroupement,
+	"FAC_MTT__c": item.s24DactFacMtt,
+	"PORT_E_MTT__c": item.s24DactPortEMtt,
+	"PROJ_MTT__c": item.s24DactProjMtt
+	})
+
+---
+mappedArray    ]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<ee:transform doc:name="Set to CSV" doc:id="1138181c-40f8-48f8-82d7-6177fd4c5f85">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="orderToUpsertCSV"><![CDATA[%dw 2.0
+output application/csv  separator=",", header=true, quoteValues=true
+---
+vars.requestBody]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<salesforce:create-job-bulk-api-v2 objectType='#["CRMA_IMPORTX3__c"]' operation="upsert" doc:name="Create job bulk api v " doc:id="68c7ff27-fc2a-489c-ad43-bdf1827d4f11" config-ref="Salesforce_Config" lineEnding="CRLF" externalIdFieldName="Id">
+			<salesforce:s-objects><![CDATA[#[vars.orderToUpsertCSV]]]></salesforce:s-objects>
+		</salesforce:create-job-bulk-api-v2>
+		<ee:transform doc:name="Set Id Salesforce" doc:id="002b6e58-522e-4851-9366-71ded85140a6">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="idSalesforce"><![CDATA[%dw 2.0
+output application/json
+---
+payload.id]]></ee:set-variable>
+				<ee:set-variable variableName="responseUpsert"><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<ee:transform doc:name="Set Response Order Line Upsert" doc:id="474d03e6-4fc0-4cec-bacd-43f8c1aed04e">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="idSalesforce"><![CDATA[%dw 2.0
+output application/json
+---
+payload.id]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="Get job State" doc:id="765dbd81-859a-4348-a60e-cbd3e568641a" name="getJobStateSub_Flow" targetValue="#[vars.idSalesforce]" />
+		<logger level="INFO" doc:name="Logger" doc:id="d9697583-13dc-4bc0-8254-92c3371ab4b9" message='#[message: "end post orders lines flow to SF"]' />
+	</flow>
+	<!-- [STUDIO:"crmaFlow"]<flow name="crmaFlow" doc:id="9770df23-e9ca-4d3c-a2e7-e02fbb240c2e" >
+		<os:retrieve doc:name="salesforce_token" doc:id="ca6694e0-38fd-4d19-8cf0-224b3d82f83f" key="salesforce_token" objectStore="sapi_token_store" target="token" />
+		<ee:transform doc:name="Transform Message" doc:id="ad03f83e-d3ca-48e1-b8b8-2d3fdf01e9c1">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/csv
+&#45;&#45;-
+payload&#93;&#93;></ee:set-payload>
+			</ee:message>
+			<ee:variables>
+			</ee:variables>
+		</ee:transform>
+		<salesforce-analytics:upload-external-data doc:name="Upload external data" doc:id="c4f5af4d-c1f7-483f-95ac-b3b11ee27c9d" config-ref="Salesforce_Analytics_Config" dataSetId="0FKTp0000000149OAA"/>
+		<logger level="INFO" doc:name="Logger" doc:id="017435bd-87e0-4e7e-ac73-f1afecea7747" message="#[payload&#93;" />
+	</flow> [STUDIO] -->
+
+	<!-- [STUDIO:"crmaUploadExternalDataIntoNewDataSet"]<flow name="crmaUploadExternalDataIntoNewDataSet" doc:id="9b9c0280-efb2-40b0-bd1a-09cfb4b7f1b5" >
+		<ee:transform doc:name="Transform Message" doc:id="d5a598b5-1767-4de9-b30c-70a0b134e5d4">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/csv
+&#45;&#45;-
+payload&#93;&#93;></ee:set-payload>
+			</ee:message>
+			<ee:variables />
+		</ee:transform>
+		<salesforce-analytics:upload-external-data-into-new-data-set-and-start-processing operation="APPEND" doc:name="Upload external data into new data set and start processing" doc:id="3078d916-fb3f-4d9e-b555-b1d80fa5b965" config-ref="Salesforce_Analytics_Config" type="/s-api-salesforce/src/test/resources/metadata.json" description="salesdata" label="salesdata" dataSetName="DA02X3_EXTRACTIONCA" notificationSent="ALWAYS" notificationEmail="khalil.bouabid@niji.fr" mode="INCREMENTAL"/>
+		<logger level="INFO" doc:name="Logger" doc:id="8f02d0f9-f697-4a8b-86e6-fbdbef257b94" message="#[payload&#93;" />
+	</flow> [STUDIO] -->
+	<flow name="getJobStateSub_Flow" doc:id="634f0e85-ee00-4f85-8b00-e7fe013707d3">
+			<until-successful maxRetries="${jobState.maxRetry}" doc:name="Until Successfull" doc:id="d95dc4fa-d761-4e14-bce5-376c2933e153" millisBetweenRetries="${jobState.delay}">
+			<try doc:name="Try" doc:id="d2a7c295-e926-4670-a1f8-778d5bfd114d">
+			<salesforce:get-job-state-bulk-api-v2 doc:name="Get job state bulk api v2 " doc:id="5861f719-fbcb-437e-b34d-e5e3ae646adb" config-ref="Salesforce_Config" id="#[vars.idSalesforce]" />
+				<ee:transform doc:name="Set response Get Line Job State" doc:id="3ebea8e0-4b58-491d-8942-cf55e1dd363f">
+							<ee:message />
+							<ee:variables>
+						<ee:set-variable variableName="state" ><![CDATA[%dw 2.0
+output application/json
+---
+payload.state]]></ee:set-variable>
+						<ee:set-variable variableName="failedRecords" ><![CDATA[%dw 2.0
+output application/json
+---
+[]]]></ee:set-variable>
+							</ee:variables>
+						</ee:transform>
+				<choice doc:name="Choice" doc:id="b063f6e6-c6a3-4975-b057-5b989f935d6f">
+				<when expression='#[vars.state == "JobComplete"]'>
+					<logger level="INFO" doc:name="Logger" doc:id="be6eb1e6-fbc9-4da8-acbe-a37c3fec5202" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10; state: vars.state&#10;}]' />
+						<salesforce:retrieve-job-failed-results-bulk-v2 doc:name="Retrieve job failed results bulk v 2" doc:id="69fb2b25-fbb3-4fce-b3fa-806a59ca542a" config-ref="Salesforce_Config" id="#[vars.idSalesforce]" target="failedRecords"/>
+				</when>
+				<when expression='#[vars.state == "Failed"]'>
+						<logger level="INFO" doc:name="Logger" doc:id="e43ca5bd-09f2-48f6-9587-f2f7e654e06c" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10; state: vars.state,&#10; message: "payload received from get job state is: \n",&#10; payload: payload&#10;}]'/>
+						<salesforce:retrieve-job-failed-results-bulk-v2 doc:name="Retrieve job failed results bulk v 2" doc:id="38cd4c5e-11d6-49a7-95e9-804e031cacd0" config-ref="Salesforce_Config" id="#[vars.idSalesforce]" target="failedRecords"/>
+					</when>
+					<otherwise>
+						<raise-error doc:name="Raise error" doc:id="de06cce9-9060-4f6c-b570-3d76cb8eafab" type="ANY" description="not yet" />
+				</otherwise>
+			</choice>
+		</try>
+		</until-successful>
+		<ee:transform doc:name="Count Successful" doc:id="db171435-3ec1-445d-a039-69e58787e671">
+						<ee:message />
+						<ee:variables>
+				<ee:set-variable variableName="successCount" ><![CDATA[%dw 2.0
+output application/json
+---
+payload.numberRecordsProcessed as Number default 0
+- payload.numberRecordsFailed as Number default 0
++ vars.successCount as Number default 0]]></ee:set-variable>
+				<ee:set-variable variableName="failedCount" ><![CDATA[%dw 2.0
+output application/json
+---
+payload.numberRecordsFailed + vars.failedCount]]></ee:set-variable>
+				<ee:set-variable variableName="failedErrorDesc" ><![CDATA[%dw 2.0
+output application/json
+---
+vars.failedRecords + vars.failedErrorDesc]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+	</flow>
+</mule>

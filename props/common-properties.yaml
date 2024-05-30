@@ -1,0 +1,115 @@
+httpListener:
+  port: "8081"
+  host: "0.0.0.0"
+  path: "/*"
+  timeout: "300000" 
+
+
+#Delay between each retry is in milliseconds
+jobState:
+  delay: "1000"
+  #1 sec beteen each retry
+  maxRetry: "500"
+  #100 secs max before SF answer
+  
+batch:
+  customers:
+    blockSize: "200"
+    aggregatorSize: "200"
+    concurrentJob: "50"
+    concurrentJobForErrors: "10"
+
+
+forEachinvoices:
+  nbrItems: "2000"
+
+forEachinvoicesLines:
+  nbrItems: "2000"
+
+shippingPriority:
+  "1": "1 : Priorité Normale"
+  "2": "2 : Commande Anticipée"
+  "3": "3 : Date Impérative"
+  "4": "4 : Commande reportée"
+  "5": "5 : Expo"
+ 
+company:
+  "001": "001 - Fermob"
+  "002": "002 - Vlaemynck"
+  
+brand:
+  "FERMOB": "Valeur1"
+  "VLAEMYNCK": "Valeur2"
+
+isInvoiced:
+  "1": "1 : Non Facturée"
+  "2": "2 : Partiellement Facturée"
+  "3": "3 : Facturée"
+  
+orderWithInstallation:
+  "2": "true"
+  "1": "false"
+  
+arcPrint:
+  "2": "true"
+  "1": "false"
+  
+salutation:
+  "1": "Mr."
+  "2": "Mrs."
+  "3": "Ms."
+  
+status:
+  "1": "Non initialisé"
+  "2": "Créée"
+  "3": "En cours d'allocatio"
+  "4": "Allocation complète"
+  "5": "En préparation"
+  "6": "Préparée"
+  "7": "Partiellement expédi"
+  "8": "Expédiée"
+  "9": "Facturée partielleme"
+  "10": "Facturée"
+  "11": "Sans objet"
+  "12": "Solde manuel"
+
+orderType:
+  "NIS": "Cde Intersociété PF"
+  "CRT": "Site web CONTRACT" 
+  "ECH": "Commande Echantillon " 
+  "EDI": "Commandes importées EDI" 
+  "IND": "Commandes B2B INDOOR " 
+  "MAR": "Commande Marseille  Factur.directe" 
+  "NOR": "commandes normales " 
+  "NORL": "commandes location " 
+  "OPF": "Opé. Commerciale B2B Fermob" 
+  "OPV": "Opé. Commerciale B2B Vlaemynck " 
+  "PEB": "Présaisons Expo B2B Fermob " 
+  "PEV": "Présaisons Expo B2B Vlaemynck" 
+  "PLV": "Envoie PLV Client Retail " 
+  "PROMO": "Commande Promo " 
+  "PSA": "Commandes présaisons " 
+  "PSB": "Commandes présaisons B2B F " 
+  "PSE": "Commandes présaisons Expo" 
+  "PVB": "Commandes présaisons B2B VL" 
+  "QUI": "Quick Shipping " 
+  "REV": "Formulaire Revendeurs" 
+  "SAV": "Commandes SAV" 
+  "SAVGR": "Commandes SAV Gratuits " 
+  "SER":  "Commande en service" 
+  "SPE":  "Affaires Spéciales " 
+  "STKEX": "Commande stock express " 
+  "VCC":  "Commande Contrat VL Factur.directe"  
+  "VCL":  "Commande Location VL  Prêt"  
+  "VIS":  "Commandes B2B"   
+  "VIV":  "Commandes B2B Vlaemynck"   
+  "WEB":  "Commandes site Web "     
+  "ZGA":  "Commandes Résa Délai Garanti "   
+  "ZIN":  "Cde Intersociété PSF "   
+  "ZINST": "Cde Intersociété Prestations "   
+  "ZRESV": "Commandes Réservation Client "   
+  "ZVI": "Cdes Inter-sites VL"     
+
+salesforce:
+  crma:
+    "dataSetId" : "DA02X3_EXTRACTIONCA"    

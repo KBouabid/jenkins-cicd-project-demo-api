@@ -1,0 +1,317 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:compression="http://www.mulesoft.org/schema/mule/compression" xmlns:batch="http://www.mulesoft.org/schema/mule/batch"
+	xmlns:workday="http://www.mulesoft.org/schema/mule/workday"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:oauth="http://www.mulesoft.org/schema/mule/oauth" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/oauth http://www.mulesoft.org/schema/mule/oauth/current/mule-oauth.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/workday http://www.mulesoft.org/schema/mule/workday/current/mule-workday.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd
+http://www.mulesoft.org/schema/mule/compression http://www.mulesoft.org/schema/mule/compression/current/mule-compression.xsd">
+	<flow name="post-orders-flow" doc:id="1fd29a98-10b6-4ac3-abfa-eca8adae2332">
+		<os:retrieve doc:name="salesforce_token" doc:id="01e6c9ba-8be2-478b-9995-887b25f2dd2d" key="salesforce_token" objectStore="sapi_token_store" target="token" />
+<!-- [STUDIO:"Decompress"]		<compression:decompress doc:name="Decompress" doc:id="e435af92-3ae8-4282-bc29-31461bc42ebc" >
+			<compression:decompressor >
+				<compression:gzip-decompressor />
+			</compression:decompressor>
+		</compression:decompress> [STUDIO] -->
+		<ee:transform doc:name="Init params" doc:id="de04e977-cb5a-484a-9ebd-e4495b31c46d">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="failedCount" ><![CDATA[%dw 2.0
+output application/json
+---
+0]]></ee:set-variable>
+				<ee:set-variable variableName="successCount" ><![CDATA[%dw 2.0
+output application/json
+---
+0]]></ee:set-variable>
+				<ee:set-variable variableName="failedErrorDesc" ><![CDATA[%dw 2.0
+output application/json
+---
+[]]]></ee:set-variable>
+			
+</ee:variables>
+		</ee:transform>
+		<ee:transform doc:name="Order to Create" doc:id="4a8a681c-4fe8-4de1-a526-33495d8d2e0d">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="requestBody"><![CDATA[%dw 2.0
+output application/json
+var mappedArray = (payload filter ($.clientCode != null)) map ((item) -> {
+	"Tech_Account__c": item.clientCode,
+	"Name": item.code,
+	"Nom_client_livre__c": item.shippingAddressDenomination,
+	"Date_solde__c": if(item.settleDate != null and item.settleDate != "") item.settleDate as Date {format: "dd/MM/yyyy"} as Date {format : "yyyy-MM-dd"} else "",
+	"Motif_solde__c": item.settleReason,
+	"Societe__c": if(item.company != null and item.company != "") p("company." ++ item.company) else "001 - Fermob",
+	"Ref_commande_client__c": item.code,
+	"Montant_a_livrer_HT__c": item.amountToShipWoTax,
+	"Priorite_livraison__c": if(item.shippingPriority != null and item.shippingPriority != "") p("shippingPriority." ++ item.shippingPriority) else "1 : Priorité Normale",
+	"A_facturer_HT__c": item.amountToInvoiceWoTax,
+	"Date_commande__c": if(item.orderDate != null and item.orderDate != "") item.orderDate as Date {format: "dd/MM/yyyy"} as Date {format : "yyyy-MM-dd"} else "",
+	"Valorisation_HT_soc__c": item.valorisationWoTax,
+	"Condition_paiement__c": item.paiementCode,
+	"Representant_1__c": item.representative1,
+	"Representant_2__c": item.representative2,
+	"Date_expedition__c": if(item.shippingDate != null and item.shippingDate != "") item.shippingDate as Date {format: "dd/MM/yyyy"} as Date {format : "yyyy-MM-dd"} else "",
+	"idX3_order__c": item.code,
+	"Type_commande__c": if (item.orderType != null and item.orderType != "")  p("orderType." ++ item.orderType) else "",
+	"No_devis__c": item.quoteCode,
+	//"Opportunity__c": item.opportunityCode,
+	"X3_IDPJTSF__c": item.opportunityCode,
+	"Marche__c": if (item.business == "Industrie") "Fermob industrie" else item.business,
+	"Centrale__c": item.centrale,
+	"Sous_Centrale__c": item.subcentrale,
+	"TECH_Prescripteur__c": item.prescriber,
+	"ClientFinal__c": item.finalClient,
+	"OrderStatus__c": if(item.status != null) p("status." ++ item.status) else "Non initialisé",
+	"BPDADDLIG1__c": item.shippingAddressLine1,
+	"BPDADDLIG2__c": item.shippingAddressLine2,
+	"BPDADDLIG3__c": item.shippingAddressLine3,
+	"BPDPOSCOD__c": item.shippingAddressZipCode,
+	"BPDCTY__c": item.shippingAddressCity,
+	"BPDCRY__c": item.shippingAddressCountry,
+	"Tech_InvoicedCustomer__c": item.invoicedClient,
+	"BPIADDLIG1__c": item.invoiceAddressLine1,
+	"BPIADDLIG2__c": item.invoiceAddressLine2,
+	"BPIADDLIG3__c": item.invoiceAddressLine3,
+	"BPIPOSCOD__c": item.invoiceAddressZipCode,
+	"BPICTY__c": item.invoiceAddressCity,
+	"BPICRY__c": item.invoiceAddressCountry,
+	"CommandeAvecInstallation__c": if (item.orderWithInstallation != null and item.orderWithInstallation != "") p("orderWithInstallation." ++ item.orderWithInstallation) default false else false,
+	//"warantyDisponibility": item.warantyDisponibility,
+	"Code_Ope_commerciale__c": item.salesOperation,
+	"Etat_Credit__c": item.creditStatus,
+	"ARC_Imprime__c": if (item.arcPrint != null and item.arcPrint != "") p("arcPrint." ++ item.arcPrint) default false else false,
+	"ModeDeLivraison__c": item.shippingMode,
+	"EtatLivraison__c": item.shippingStatus,
+	"Date_dern_facture__c": if(item.lastInvoiceDate != null and item.lastInvoiceDate != "") item.lastInvoiceDate as Date {format: "dd/MM/yyyy"} as Date {format : "yyyy-MM-dd"} else "",
+	"site_de_vente__c": item.salesSite,
+	"Note_Clictill__c": item.comment,
+	"Montant_Commande_TTC__c": item.amountWtTax,
+	"Code_Transporteur__c": item.transporterCode,
+	"Code_Livreur__c": item.shipperCode,
+	"Option_commerciale__c": item.commercialOption,
+	"Mode_de_livraison_Web__c": item.webShippingMode,
+	"Remise_Exceptionnelle__c": item.exceptionalDiscount,
+	"Remise_forfaitaire__c": item.inclusiveDiscount
+})
+
+---
+mappedArray
+]]></ee:set-variable>
+			
+</ee:variables>
+		</ee:transform>
+		<ee:transform doc:name="Set to CSV" doc:id="f1c8eb23-34fb-4ebf-b4da-5e6d86105fba">
+					<ee:message>
+					</ee:message>
+					<ee:variables>
+				<ee:set-variable variableName="orderToUpsertCSV" ><![CDATA[%dw 2.0
+output application/csv  separator=",", header=true, quoteValues=true
+---
+vars.requestBody]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+		<salesforce:create-job-bulk-api-v2 objectType="Order__c" operation="upsert" doc:name="Create job bulk api v 2" doc:id="8e6cc357-4853-43a8-bbbc-92db4d69e23e" config-ref="Salesforce_Config" externalIdFieldName="idX3_order__c">
+			<salesforce:s-objects><![CDATA[#[vars.orderToUpsertCSV]]]></salesforce:s-objects>
+		</salesforce:create-job-bulk-api-v2>
+		<ee:transform doc:name="Set Id Salesforce" doc:id="9ddf1188-579c-4d18-9004-3de5e2168e0e">
+					<ee:message>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="idSalesforce"><![CDATA[%dw 2.0
+output application/json
+---
+payload.id]]></ee:set-variable>
+						<ee:set-variable variableName="responseUpsert"><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+		<flow-ref doc:name="Get Job State" doc:id="5a905d96-0047-4db0-a3a4-cd367b1e15a1" name="getJobStateSub_Flow2" />
+		<logger level="INFO" doc:name="Logger" doc:id="ef365e67-96ff-404e-9d37-1ce21e7bb7db" message='#[{&#10;message: "end post orders flow to SF"&#10;}]'/>
+	</flow>
+	<flow name="post-ordersLines-flow" doc:id="e45aeebb-e11d-47c6-ab70-e4bbbb0548e2">
+		<os:retrieve doc:name="salesforce_token" doc:id="7f47fa2f-e8dd-4dc0-8f5e-6447e577fdcd" key="salesforce_token" objectStore="sapi_token_store" target="token" />
+		<ee:transform doc:name="Init params" doc:id="37ac1552-b54a-4e98-aa7d-6cd2bb34cf84">
+			<ee:message />
+			<ee:variables>
+							<ee:set-variable variableName="failedCount" ><![CDATA[%dw 2.0
+output application/json
+---
+0]]></ee:set-variable>
+				<ee:set-variable variableName="successCount" ><![CDATA[%dw 2.0
+output application/json
+---
+0]]></ee:set-variable>
+				<ee:set-variable variableName="failedErrorDesc" ><![CDATA[%dw 2.0
+output application/json
+---
+[]]]></ee:set-variable>
+			</ee:variables>
+			
+			
+		</ee:transform>
+		<ee:transform doc:name="Filter Orders and Order line" doc:id="c0cae5a4-edbc-4ebb-a619-113a49df6979">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="orderLinesUpsert" ><![CDATA[%dw 2.0
+output application/java
+---
+payload filter ($.clientCode == null) orderBy ($.orderCode)]]></ee:set-variable>
+			
+</ee:variables>
+		</ee:transform>
+		<ee:transform doc:name="Transform Message" doc:id="b9a7bff4-51e9-4777-83cc-1357eca5f3c1">
+				<ee:message>
+				</ee:message>
+				<ee:variables>
+					<ee:set-variable variableName="orderCode"><![CDATA[%dw 2.0
+output text/plain
+---
+//write(payload.orderCode)replace('"') with ("'") replace('[') with ('(') replace  (']') with (')') replace /[ \n]/ with ('')
+"('"
+++ ((payload.orderCode distinctBy $) joinBy
+"','"
+) ++
+"')"]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+		<salesforce:query doc:name="Order__c" doc:id="3afad979-f034-421a-8f10-3eed55be67af" config-ref="Salesforce_Config" readTimeoutUnit="HOURS" target="responseQuery">
+			<salesforce:salesforce-query><![CDATA[SELECT Id , idX3_order__c  FROM Order__c WHERE idX3_order__c IN :orderCodes AND Account__r.isPersonAccount = true
+]]></salesforce:salesforce-query>
+			<salesforce:parameters><![CDATA[#[output application/java
+---
+{
+	"orderCodes" : vars.orderCode
+}]]]></salesforce:parameters>
+		</salesforce:query>
+		<ee:transform doc:name="Map upsert Salesforce" doc:id="cd8d158f-f1c3-4a69-80dd-60c1dc270d07">
+							<ee:message>
+							</ee:message>
+							<ee:variables>
+								<ee:set-variable variableName="requestBodyLine"><![CDATA[%dw 2.0
+output application/json
+
+var matchOrderCode = (code) -> (vars.responseQuery filter ($.idX3_order__c == code))
+
+var mappedArray = (payload filter (($.clientCode == null) and (matchOrderCode($.orderCode)[0].Id != null)) map ((item) -> 
+	{	
+	"Order__c": matchOrderCode(item.orderCode)[0].Id default "",
+	"idX3_orderline__c": if(item.line != null and item.sequence != null and item.orderCode != null) item.orderCode ++ "/" ++ item.line ++ "/" ++ item.sequence else "",
+	"Name": if(item.line != null and item.sequence != null and item.orderCode != null) item.orderCode ++ "/" ++ item.line ++ "/" ++ item.sequence else "",
+	"Article__c": item.itmref,
+	//"itmref": item.sequence,
+	"Marque_article__c": if(item.brand != "" and item.brand != null) p("brand." ++ item.brand) else "Valeur1",
+	"Designation_article__c": item.articleDesignation,
+	"Designation_2__c": item.articleDesignation2,
+	"Designation_3__c": item.articleDesignation3,
+	"Famille_statistique__c": item.statFamily,
+	"Famille_statistique_sous_famille__c": item.statSubFamily,
+	"Famille_statistique_type__c": item.statTypeFamily,
+	"Famille_statistique_couleur__c": item.statColorFamily,
+	"Quantite_commandee__c": item.quantityOrdered,
+	"Montant_ligne_commande__c": item.amount,
+	"Qte_a_livrer__c": item.quantityToShop,
+	"Montant_ligne_restant_a_facturer__c": item.restAmountToInvoice,
+	"Qte_facturee__c": item.quantityInvoiced,
+	"Montant_facture__c": item.amountInvoiced,
+	"Flag_line_facturee__c": p("isInvoiced." ++ item.isInvoiced),
+	"Date_solde__c": if(item.settleDate != "" and item.settleDate != null) item.settleDate as Date {format: "dd/MM/yyyy"} as Date {format: "yyyy-MM-dd"} else "",
+	"Motif_solde__c": item.settleReason,
+	//"eanCode": item.eanCode,
+	//"Date_d_expedition__c": if(item.expeditionDate != "" and item.expeditionDate != null) item.expeditionDate as Date {format: "dd/MM/yyyy"} as Date {format: "yyyy-MM-dd"} else "",
+	"Qte_allouees__c": item.quantityAllocated,
+	"Reste__c": item.quantityToAllocate,
+	"QuantiteTraitement__c": item.quantityProcessing
+	//"createdAt": item.createdAt,
+	//"updatedAt": item.updatedAt,
+}))
+
+---
+mappedArray]]></ee:set-variable>
+							</ee:variables>
+						</ee:transform>
+		<ee:transform doc:name="Set to CSV" doc:id="917f7e9c-ac87-4f4f-a44d-7b06074b3171">
+							<ee:message />
+							<ee:variables>
+								<ee:set-variable variableName="orderLineToUpsertCSV"><![CDATA[%dw 2.0
+output application/csv  separator=",", header=true, quoteValues=true
+---
+vars.requestBodyLine ]]></ee:set-variable>
+							</ee:variables>
+						</ee:transform>
+		<salesforce:create-job-bulk-api-v2 objectType="OrderLine__c" operation="upsert" doc:name="Create job bulk api v2" doc:id="ff802951-9d89-4e17-a376-bedadaf5f705" config-ref="Salesforce_Config" externalIdFieldName="idX3_orderline__c">
+							<salesforce:s-objects><![CDATA[#[vars.orderLineToUpsertCSV]]]></salesforce:s-objects>
+						</salesforce:create-job-bulk-api-v2>
+		<ee:transform doc:name="Set Response Order Line Upsert" doc:id="47bf50e3-df80-4860-b37f-fa98cf97db0a">
+							<ee:message />
+							<ee:variables>
+								<ee:set-variable variableName="idSalesforce"><![CDATA[%dw 2.0
+output application/json
+---
+payload.id]]></ee:set-variable>
+							</ee:variables>
+						</ee:transform>
+		<flow-ref doc:name="Get job State" doc:id="0f74e089-77da-40e0-bcf6-fba8453960e1" name="getJobStateSub_Flow2" targetValue="#[vars.idSalesforce]" />
+		<logger level="INFO" doc:name="Logger" doc:id="8d524857-4895-4cb9-88b5-7f6a837f8db8" message='#[message: "end post orders lines flow to SF"]' />
+	</flow>
+	<flow name="getJobStateSub_Flow2" doc:id="32912089-887b-40c4-b0f6-6d04b968ef59">
+			<until-successful maxRetries="${jobState.maxRetry}" doc:name="Until Successfull" doc:id="48d4ee5b-d9ff-43aa-ac61-214d375502b9" millisBetweenRetries="${jobState.delay}">
+			<try doc:name="Try" doc:id="c2ae0c14-1652-4712-a905-5afea5786870">
+			<salesforce:get-job-state-bulk-api-v2 doc:name="Get job state bulk api v2 " doc:id="44dfa579-4fdc-4f86-9d13-39bb69d4cdb8" config-ref="Salesforce_Config" id="#[vars.idSalesforce]" />
+				<ee:transform doc:name="Set response Get Line Job State" doc:id="85c19346-531d-44c7-b306-e1cdaa806bcf">
+							<ee:message />
+							<ee:variables>
+						<ee:set-variable variableName="state" ><![CDATA[%dw 2.0
+output application/json
+---
+payload.state]]></ee:set-variable>
+						<ee:set-variable variableName="failedRecords" ><![CDATA[%dw 2.0
+output application/json
+---
+[]]]></ee:set-variable>
+							</ee:variables>
+						</ee:transform>
+				<choice doc:name="Choice" doc:id="b6acc48a-064b-42ad-85c5-ae28098709fa">
+				<when expression='#[vars.state == "JobComplete"]'>
+					<logger level="INFO" doc:name="Logger" doc:id="14372296-c7e5-4282-adb1-8c75ae12ed64" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10; state: vars.state&#10;}]' />
+						<salesforce:retrieve-job-failed-results-bulk-v2 doc:name="Retrieve job failed results bulk v 2" doc:id="25a28b02-1634-46a1-98ad-89da4ff8bd38" config-ref="Salesforce_Config" id="#[vars.idSalesforce]" target="failedRecords"/>
+				</when>
+				<when expression='#[vars.state == "Failed"]'>
+						<logger level="INFO" doc:name="Logger" doc:id="f3727828-7a73-4cff-a000-282e18e07d58" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10; state: vars.state,&#10; message: "payload received from get job state is: \n",&#10; payload: payload&#10;}]'/>
+						<salesforce:retrieve-job-failed-results-bulk-v2 doc:name="Retrieve job failed results bulk v 2" doc:id="06b9e087-cfe0-47ce-b371-9e7360d27bd2" config-ref="Salesforce_Config" id="#[vars.idSalesforce]" target="failedRecords"/>
+					</when>
+					<otherwise>
+						<raise-error doc:name="Raise error" doc:id="0fce84b0-67d1-49c6-b080-8540a84e0973" type="ANY" description="not yet" />
+				</otherwise>
+			</choice>
+		</try>
+		</until-successful>
+		<ee:transform doc:name="Count Successful" doc:id="865113d3-8320-4339-be03-d2c6517e6c37">
+						<ee:message />
+						<ee:variables>
+				<ee:set-variable variableName="successCount" ><![CDATA[%dw 2.0
+output application/json
+---
+payload.numberRecordsProcessed as Number default 0
+- payload.numberRecordsFailed as Number default 0
++ vars.successCount as Number default 0]]></ee:set-variable>
+				<ee:set-variable variableName="failedCount" ><![CDATA[%dw 2.0
+output application/json
+---
+payload.numberRecordsFailed + vars.failedCount]]></ee:set-variable>
+				<ee:set-variable variableName="failedErrorDesc" ><![CDATA[%dw 2.0
+output application/json
+---
+vars.failedRecords + vars.failedErrorDesc]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+	</flow>
+</mule>

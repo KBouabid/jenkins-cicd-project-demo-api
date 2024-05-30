@@ -1,0 +1,11 @@
+salesforce_token:
+  client_secret : "![4BrYFVPF08FkOpL7NkkLxdmqGFQF030CAFquPuueehr2QPs8py9cYkgxKEaEf2U0Cy9SisorR+19xmyJ0IUkvnMTaAybIQTX]"
+  client_id : "![LIDHfAtXIgN4paFF+3k2aE9ZAF6BPmx2rt98pJXnEoGYIRx6TPKwq8IkA0Cwl6HLFNdTuMooy7QFtQFMnEEUfF7B213AsF8IMVL1V0H3JjSmkSgEAAA9fQ==]"
+  username : "![TRiAum71n+Fk8ORZ1Mly0V5eQ/NnzXyl556KcYRvvbk=]"
+  password : "![BHVdfOTygqaqusjl8xkTC4j+LiMC7gB3nV3GFnMXupUhZGYXw87jbH58Wb4n+Y0o]"
+  
+crma_salesforce_token:
+  client_secret : "![MdjC4uGjNoCRZ2FQd1Loot/unE3masVxOEiHmhPhVjhYejlHhsuuS8FqLDCHjTYqZ551gIskZX71p7q/cBOnE20+EbqQRuXu]"
+  client_id : "![dDkZdY5JuMDUhyoWCkOcV30CobDhGnOdawPQSlUQ85mzY7OuEhOlR66NddB6wnu9lz1nBbH+qRQ49xCdofNp6AvDRKJraWisWm6It7vBsVXgGjUqw3PlEQ==]"
+  username : "![TRiAum71n+Fk8ORZ1Mly0V5eQ/NnzXylqyGH3bI0InE=]"
+  password : "![UcbBeVURtmOVfM/Ybb5+ODf6HlwTuWw/cDUWRDRPDqtrVw7olm6pu1dJKv1xce9g]"

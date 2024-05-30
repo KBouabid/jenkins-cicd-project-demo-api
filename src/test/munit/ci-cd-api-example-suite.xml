@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="ci-cd-api-example-suite.xml" />
+	<munit:test name="ci-cd-api-exampleFlow-test" doc:id="e1dc3f92-fbe4-441d-987d-815d2f57734e" >
+		<munit:behavior >
+			<munit:set-event doc:name="Set Input" doc:id="d355f7f5-860f-4976-9325-a35b4c4735db" >
+				<munit:payload value="#[readUrl('classpath://cicdapiexampleFlowtest\set-event_payload.dwl')]" encoding="UTF-8" />
+				<munit:attributes value="#[readUrl('classpath://cicdapiexampleFlowtest\set-event_attributes.dwl')]" />
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to ci-cd-api-exampleFlow" doc:id="d9fac603-5e4f-4f04-9120-a3ce3006e28f" name="ci-cd-api-exampleFlow"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert doc:name="Assert payload" doc:id="b410481e-19ec-4b87-8a5b-48e27d16d0dd" message="The payload does not match">
+				<munit-tools:that ><![CDATA[#[%dw 2.0
+import cicdapiexampleFlowtest::assert_expression_payload
+---
+assert_expression_payload::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+		</munit:validation>
+	</munit:test>
+
+
+</mule>

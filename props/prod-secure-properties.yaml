@@ -1,0 +1,12 @@
+salesforce_token:
+  client_secret : "![MdjC4uGjNoCRZ2FQd1Loot/unE3masVxOEiHmhPhVjhYejlHhsuuS8FqLDCHjTYqZ551gIskZX71p7q/cBOnE20+EbqQRuXu]"
+  client_id : "![dDkZdY5JuMDUhyoWCkOcV30CobDhGnOdawPQSlUQ85mzY7OuEhOlR66NddB6wnu9lz1nBbH+qRQ49xCdofNp6AvDRKJraWisWm6It7vBsVXgGjUqw3PlEQ==]"
+  username : "![TRiAum71n+Fk8ORZ1Mly0V5eQ/NnzXylqyGH3bI0InE=]"
+  password : "![UcbBeVURtmOVfM/Ybb5+ODf6HlwTuWw/cDUWRDRPDqtrVw7olm6pu1dJKv1xce9g]"
+  
+  
+crma_salesforce_token:
+  client_secret : ""
+  client_id : ""
+  username : ""
+  password : ""
