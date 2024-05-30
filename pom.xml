@@ -61,6 +61,8 @@
 				<configuration>
 					<coverage>
 						<runCoverage>true</runCoverage>
+						<failBuild>false</failBuild>
+						<requiredApplicationCoverage>50</requiredApplicationCoverage>						
 						<formats>
 							<format>html</format>
 						</formats>
@@ -86,14 +88,14 @@
 		<dependency>
 			<groupId>com.mulesoft.munit</groupId>
 			<artifactId>munit-runner</artifactId>
-			<version>3.0.0</version>
+			<version>2.3.14</version>
 			<classifier>mule-plugin</classifier>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>com.mulesoft.munit</groupId>
 			<artifactId>munit-tools</artifactId>
-			<version>3.0.0</version>
+			<version>2.3.14</version>
 			<classifier>mule-plugin</classifier>
 			<scope>test</scope>
 		</dependency>

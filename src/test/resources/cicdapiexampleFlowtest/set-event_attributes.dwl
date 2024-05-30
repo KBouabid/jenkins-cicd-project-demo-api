@@ -21,6 +21,6 @@
   "uriParams": {},
   "rawRequestUri": "/cicdtest",
   "rawRequestPath": "/cicdtest",
-  "remoteAddress": "/127.0.0.1:64655",
+  "remoteAddress": "/http://testcicdkhalil-mai24.us-e2.cloudhub.io",
   "requestPath": "/cicdtest"
 }
